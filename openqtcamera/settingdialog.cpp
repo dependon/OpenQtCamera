@@ -61,6 +61,7 @@ settingDialog::settingDialog(QMediaRecorder* mediarecorder,QWidget *parent) :
         ui->formatBox->hide();
         ui->audioSampleRateLabel->hide();
         ui->audioSampleRateBox->hide();
+        setWindowTitle("设置");
     }
 }
 

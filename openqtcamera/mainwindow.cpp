@@ -3,8 +3,11 @@
 #include <QList>
 #include <QDebug>
 #include <QSize>
+#include "mainwindow.h"
 #include "settingdialog.h"
 #include <QDateTime>
+#include <QVideoProbe>
+#include <QTimer>
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -12,6 +15,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     initCamera();
     initConnect();
+    setWindowTitle("相机");
 }
 
 MainWindow::~MainWindow()
@@ -22,9 +26,21 @@ MainWindow::~MainWindow()
 
 void MainWindow::initCamera()
 {
+
+    m_graphicsVideoItem = new QGraphicsVideoItem();
+//    m_graphicsVideoItem->setSize(QSizeF(640,480));
+    m_graphicsVideoItem->setPos(0,0);
+
+    m_graphicsScene = new QGraphicsScene(this);
+    m_graphicsScene->addItem(m_graphicsVideoItem);
+
+    m_graphicsView = new QGraphicsView(this);
+    m_graphicsView->setScene(m_graphicsScene);
+
+
     m_pCamera =new QCamera(QCameraInfo::defaultCamera());
-    m_pCameraViewfinder=new QCameraViewfinder();
-    ui->gridLayout->addWidget(m_pCameraViewfinder);
+
+    ui->gridLayout->addWidget(m_graphicsView);
     m_pCameraImageCapture=new QCameraImageCapture(m_pCamera);
     //设置采集目标
 
@@ -34,10 +50,10 @@ void MainWindow::initCamera()
 //    m_pCamera->setCaptureMode(QCamera::CaptureViewfinder);//将其采集为图片
 //    m_pCamera->setCaptureMode(QCamera::CaptureMode::CaptureStillImage);//将其采集到取景器中
     //设置取景器
-    m_pCamera->setViewfinder(m_pCameraViewfinder);
+    m_pCamera->setViewfinder(m_graphicsVideoItem);
 
 
-    m_pCamera->setCaptureMode(QCamera::CaptureVideo);
+    m_pCamera->setCaptureMode(QCamera::CaptureStillImage);
 
     //dosomething about the resolution
 
@@ -49,6 +65,14 @@ void MainWindow::initCamera()
         qDebug()<<str;
 
     });
+    m_pCameraImageCapture;
+//    void imageCaptured(int id, const QImage &preview);
+//    void imageMetadataAvailable(int id, const QString &key, const QVariant &value);
+//    void imageAvailable(int id, const QVideoFrame &frame);
+       connect(m_pCameraImageCapture, &QCameraImageCapture::imageAvailable, this, [=](int id, const QVideoFrame &frame){
+           qDebug()<<"1111";
+
+       });
     QVideoEncoderSettings videosetting = m_mediaRecorder->videoSettings();
     videosetting.setResolution(QSize(640,480));
     m_mediaRecorder->setVideoSettings (videosetting);
@@ -65,17 +89,56 @@ void MainWindow::initCamera()
 //        qDebug()<<info.orientation();
 //    }
 
+    ui->statusBar->hide();
+
+    auto* probe = new QVideoProbe(m_pCamera);
+
+    //一旦有探测到有视频，就触发了ProcessVideoFrame函数
+    connect(probe, SIGNAL(videoFrameProbed(QVideoFrame)), this, SLOT(ProcessVideoFrame(QVideoFrame)));
 
 }
-
+void MainWindow::resizeMovieWindow()
+{
+    m_graphicsView->size();
+    m_graphicsScene->setSceneRect(QRect(0, 0, (m_graphicsView->size().width()-2) * m_playMultiple,(m_graphicsView->size().height()-2)  *m_playMultiple));
+    m_graphicsVideoItem->setSize(QSize(m_graphicsScene->width(),m_graphicsScene->height()));
+}
 void MainWindow::initConnect()
 {
     connect(ui->actionsetting,&QAction::triggered,this,[=]{
             settingDialog dialog(m_mediaRecorder);
             dialog.exec();
     });
+    QTabWidget a;
+    connect(ui->tabWidget,&QTabWidget::tabBarClicked,this,[=](int index){
+        if(0==index)
+        {
+            m_pCamera->searchAndLock();
+
+            m_pCamera->setCaptureMode(QCamera::CaptureStillImage);
+
+            m_pCamera->unlock();
+        }
+        else if(1==index){
+            m_pCamera->searchAndLock();
+
+            m_pCamera->setCaptureMode(QCamera::CaptureVideo);
+
+            m_pCamera->unlock();
+        }
+    });
 }
 
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    resizeMovieWindow();
+    return QMainWindow::resizeEvent(event);
+}
+void MainWindow::showEvent(QShowEvent *event)
+{
+    resizeMovieWindow();
+    return QMainWindow::showEvent(event);
+}
 void MainWindow::on_startBtn_clicked()
 {
     qDebug()<<m_mediaRecorder->availableMetaData();
@@ -112,3 +175,27 @@ void MainWindow::on_stopBtn_clicked()
 }
 
 
+
+void MainWindow::on_picBtn_clicked()
+{
+
+    if(QCamera::CaptureStillImage==m_pCamera->captureMode())
+    {
+        m_pCameraImageCapture->capture("UOS"+QDateTime::currentDateTime().toString());
+    }
+    else {
+        qDebug()<<"111";
+    }
+
+
+}
+
+void MainWindow::on_morePicBtn_clicked()
+{
+
+}
+
+void MainWindow::ProcessVideoFrame(QVideoFrame frame)
+{
+    qDebug()<<111111;
+}
