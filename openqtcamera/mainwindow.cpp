@@ -8,6 +8,7 @@
 #include <QDateTime>
 #include <QVideoProbe>
 #include <QTimer>
+#include <QStandardPaths>
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -53,7 +54,8 @@ void MainWindow::initCamera()
     m_pCamera->setViewfinder(m_graphicsVideoItem);
 
 
-    m_pCamera->setCaptureMode(QCamera::CaptureStillImage);
+//    m_pCamera->setCaptureMode(QCamera::CaptureStillImage);
+    m_pCamera->setCaptureMode(QCamera::CaptureVideo);
 
     //dosomething about the resolution
 
@@ -65,7 +67,6 @@ void MainWindow::initCamera()
         qDebug()<<str;
 
     });
-    m_pCameraImageCapture;
 //    void imageCaptured(int id, const QImage &preview);
 //    void imageMetadataAvailable(int id, const QString &key, const QVariant &value);
 //    void imageAvailable(int id, const QVideoFrame &frame);
@@ -109,23 +110,22 @@ void MainWindow::initConnect()
             settingDialog dialog(m_mediaRecorder);
             dialog.exec();
     });
-    QTabWidget a;
     connect(ui->tabWidget,&QTabWidget::tabBarClicked,this,[=](int index){
-        if(0==index)
-        {
-            m_pCamera->searchAndLock();
+//        if(0==index)
+//        {
+//            m_pCamera->searchAndLock();
 
-            m_pCamera->setCaptureMode(QCamera::CaptureStillImage);
+//            m_pCamera->setCaptureMode(QCamera::CaptureStillImage);
 
-            m_pCamera->unlock();
-        }
-        else if(1==index){
-            m_pCamera->searchAndLock();
+//            m_pCamera->unlock();
+//        }
+//        else if(1==index){
+//            m_pCamera->searchAndLock();
 
-            m_pCamera->setCaptureMode(QCamera::CaptureVideo);
+//            m_pCamera->setCaptureMode(QCamera::CaptureVideo);
 
-            m_pCamera->unlock();
-        }
+//            m_pCamera->unlock();
+//        }
     });
 }
 
@@ -184,7 +184,13 @@ void MainWindow::on_picBtn_clicked()
         m_pCameraImageCapture->capture("UOS"+QDateTime::currentDateTime().toString());
     }
     else {
-        qDebug()<<"111";
+        qDebug()<<"video";
+        QImage image(m_graphicsScene->sceneRect().size().toSize(), QImage::Format_ARGB32);
+        QPainter painter(&image);
+        m_graphicsScene->render(&painter);
+        QString path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) +"/" +QDateTime::currentDateTimeUtc().toString()+".png";
+
+        image.save(path);
     }
 
 
