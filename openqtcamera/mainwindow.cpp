@@ -8,7 +8,9 @@
 #include <QDateTime>
 #include <QVideoProbe>
 #include <QTimer>
+#include <QThread>
 #include <QStandardPaths>
+#include "framesettingdialog.h"
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -35,13 +37,11 @@ void MainWindow::initCamera()
     m_graphicsScene = new QGraphicsScene(this);
     m_graphicsScene->addItem(m_graphicsVideoItem);
 
-    m_graphicsView = new QGraphicsView(this);
-    m_graphicsView->setScene(m_graphicsScene);
+    ui->graphicsView->setScene(m_graphicsScene);
 
-
+    m_graphicsScene->setBackgroundBrush(Qt::black);
     m_pCamera =new QCamera(QCameraInfo::defaultCamera());
 
-    ui->gridLayout->addWidget(m_graphicsView);
     m_pCameraImageCapture=new QCameraImageCapture(m_pCamera);
     //设置采集目标
 
@@ -61,6 +61,9 @@ void MainWindow::initCamera()
 
     m_mediaRecorder=new QMediaRecorder(m_pCamera);
 
+    QCameraViewfinderSettings *m_finderSetting=new QCameraViewfinderSettings();
+        m_finderSetting->setPixelAspectRatio(900,200);
+    m_pCamera->setViewfinderSettings(*m_finderSetting);
 
     connect(m_mediaRecorder, &QMediaRecorder::durationChanged, this, [=](qint64 index){
         QString str = QString("Recorded %1 sec").arg(m_mediaRecorder->duration()/1000);
@@ -76,8 +79,11 @@ void MainWindow::initCamera()
        });
     QVideoEncoderSettings videosetting = m_mediaRecorder->videoSettings();
     videosetting.setResolution(QSize(640,480));
+
+    m_widthTheight=float(640)/float(480);
     m_mediaRecorder->setVideoSettings (videosetting);
 
+    m_graphicsVideoItem->setAspectRatioMode(Qt::IgnoreAspectRatio);
     //开启相机
     m_pCamera->start();
 
@@ -100,9 +106,29 @@ void MainWindow::initCamera()
 }
 void MainWindow::resizeMovieWindow()
 {
-    m_graphicsView->size();
-    m_graphicsScene->setSceneRect(QRect(0, 0, (m_graphicsView->size().width()-2) * m_playMultiple,(m_graphicsView->size().height()-2)  *m_playMultiple));
+    float width=ui->graphicsView->width();
+    float height=ui->graphicsView->height();
+    if(m_graphicsVideoItem->aspectRatioMode()==Qt::KeepAspectRatio)
+    {
+        if(width/height > m_widthTheight)
+        {
+            width=height*m_widthTheight;
+        }
+        else {
+            height=width/m_widthTheight;
+        }
+    }
+    m_graphicsScene->setSceneRect(QRect(0, 0, ( width-2) * m_playMultiple,( height-2)  *m_playMultiple));
     m_graphicsVideoItem->setSize(QSize(m_graphicsScene->width(),m_graphicsScene->height()));
+
+
+
+
+}
+
+bool MainWindow::isFile(const QString &path)
+{
+
 }
 void MainWindow::initConnect()
 {
@@ -110,6 +136,11 @@ void MainWindow::initConnect()
             settingDialog dialog(m_mediaRecorder);
             dialog.exec();
     });
+    connect(ui->actionFrameSetting,&QAction::triggered,this,[=]{
+            FrameSettingDialog dialog(m_graphicsVideoItem,m_mediaRecorder);
+            dialog.exec();
+    });
+
     connect(ui->tabWidget,&QTabWidget::tabBarClicked,this,[=](int index){
 //        if(0==index)
 //        {
@@ -178,7 +209,7 @@ void MainWindow::on_stopBtn_clicked()
 
 void MainWindow::on_picBtn_clicked()
 {
-
+    ui->picBtn->setChecked(false);
     if(QCamera::CaptureStillImage==m_pCamera->captureMode())
     {
         m_pCameraImageCapture->capture("UOS"+QDateTime::currentDateTime().toString());
@@ -188,16 +219,27 @@ void MainWindow::on_picBtn_clicked()
         QImage image(m_graphicsScene->sceneRect().size().toSize(), QImage::Format_ARGB32);
         QPainter painter(&image);
         m_graphicsScene->render(&painter);
-        QString path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) +"/" +QDateTime::currentDateTimeUtc().toString()+".png";
-
+        QString path = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) +"/" +QDateTime::currentDateTime().toString()+QString::number(QDateTime::currentMSecsSinceEpoch())+".png";
         image.save(path);
     }
+    ui->picBtn->setChecked(true);
 
 
 }
 
 void MainWindow::on_morePicBtn_clicked()
 {
+    QThread *th1=QThread::create([ = ]() {
+        int index=5;
+        while(index>0)
+        {
+            on_picBtn_clicked();
+            QThread::sleep(1);
+            index--;
+        }
+    });
+    connect(th1, &QThread::finished, th1, &QObject::deleteLater);
+    th1->start();
 
 }
 

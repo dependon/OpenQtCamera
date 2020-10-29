@@ -16,7 +16,11 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_3" rowstretch="1,0">
     <item row="0" column="0">
-     <layout class="QGridLayout" name="gridLayout"/>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QGraphicsView" name="graphicsView"/>
+      </item>
+     </layout>
     </item>
     <item row="1" column="0">
      <widget class="QTabWidget" name="tabWidget">
@@ -155,6 +159,7 @@
      <string>菜单</string>
     </property>
     <addaction name="actionsetting"/>
+    <addaction name="actionFrameSetting"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menumenu"/>
@@ -170,10 +175,18 @@
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionsetting">
    <property name="text">
-    <string>setting</string>
+    <string>解码设置</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionFrameSetting">
+   <property name="text">
+    <string>画面设置</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
    </property>
   </action>
  </widget>

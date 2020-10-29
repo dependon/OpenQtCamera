@@ -31,6 +31,8 @@ public:
     void initConnect();
     void resizeMovieWindow();
 
+    bool isFile(const QString & path);
+
 protected:
     virtual void showEvent(QShowEvent *event) override;
     virtual void resizeEvent(QResizeEvent *event) override;
@@ -57,8 +59,8 @@ private:
 
     QGraphicsVideoItem* m_graphicsVideoItem{nullptr};
     QGraphicsScene* m_graphicsScene{nullptr};
-    QGraphicsView*  m_graphicsView{nullptr};
     float m_playMultiple{1};
+    float m_widthTheight{0};
 };
 
 #endif // MAINWINDOW_H
