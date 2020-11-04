@@ -2,6 +2,8 @@ openqtCamera
 利用QMultimedia的技术实现的一个简单的摄像头程序
 2020/10/21第一次更新
 
+#### gihub
+https://github.com/dependon/openQtCamera
 #### （Contact author）
 send emails liuminghang0821@gmail.com或者liuminghang0821@qq.com（china））
 #### Linux build-dep（linux安装所需）
