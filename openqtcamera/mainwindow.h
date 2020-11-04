@@ -50,6 +50,7 @@ private slots:
 
     void ProcessVideoFrame(QVideoFrame frame);
 
+
 private:
     Ui::MainWindow *ui;
     QCamera *m_pCamera{nullptr};
@@ -61,6 +62,9 @@ private:
     QGraphicsScene* m_graphicsScene{nullptr};
     float m_playMultiple{1};
     float m_widthTheight{0};
+
+    QString m_picSavePath=nullptr;
+    QString m_movSavePath=nullptr;
 };
 
 #endif // MAINWINDOW_H

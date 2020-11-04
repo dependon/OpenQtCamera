@@ -153,6 +153,7 @@
     <property name="title">
      <string>文件</string>
     </property>
+    <addaction name="actionFileSavePath"/>
    </widget>
    <widget class="QMenu" name="menumenu">
     <property name="title">
@@ -187,6 +188,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="actionFileSavePath">
+   <property name="text">
+    <string>文件存储路径设置</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F2</string>
    </property>
   </action>
  </widget>

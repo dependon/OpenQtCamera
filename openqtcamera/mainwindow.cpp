@@ -10,6 +10,7 @@
 #include <QTimer>
 #include <QThread>
 #include <QStandardPaths>
+#include "savepathdialog.h"
 #include "framesettingdialog.h"
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -140,6 +141,12 @@ void MainWindow::initConnect()
             FrameSettingDialog dialog(m_graphicsVideoItem,m_mediaRecorder);
             dialog.exec();
     });
+    connect(ui->actionFileSavePath,&QAction::triggered,this,[=]{
+            savePathDialog dialog(m_picSavePath,m_movSavePath);
+            dialog.exec();
+            m_picSavePath=dialog.getpicSavePath();
+            m_movSavePath=dialog.getmovSavePath();
+    });
 
     connect(ui->tabWidget,&QTabWidget::tabBarClicked,this,[=](int index){
 //        if(0==index)
@@ -191,7 +198,17 @@ void MainWindow::on_startBtn_clicked()
 //    QAudioEncoderSettings audioSettings() const;
 //    QVideoEncoderSettings videoSettings() const;
 //    QString containerFormat() const;
-    m_mediaRecorder->setOutputLocation(QUrl("UOS"+QDateTime::currentDateTime().toString()));
+    QString path;
+    if(m_movSavePath!=nullptr)
+    {
+         path = m_movSavePath +"/" + \
+                 QDateTime::currentDateTime().toString()+QString::number(QDateTime::currentMSecsSinceEpoch());
+    }
+    else {
+         path = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) +"/" + \
+                 QDateTime::currentDateTime().toString()+QString::number(QDateTime::currentMSecsSinceEpoch());
+    }
+    m_mediaRecorder->setOutputLocation(QUrl(path));
     m_mediaRecorder->record();
 }
 
@@ -219,7 +236,17 @@ void MainWindow::on_picBtn_clicked()
         QImage image(m_graphicsScene->sceneRect().size().toSize(), QImage::Format_ARGB32);
         QPainter painter(&image);
         m_graphicsScene->render(&painter);
-        QString path = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) +"/" +QDateTime::currentDateTime().toString()+QString::number(QDateTime::currentMSecsSinceEpoch())+".png";
+        QString path;
+        if(m_picSavePath!=nullptr)
+        {
+             path = m_picSavePath +"/" + \
+                     QDateTime::currentDateTime().toString()+QString::number(QDateTime::currentMSecsSinceEpoch())+".png";
+        }
+        else {
+             path = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) +"/" + \
+                     QDateTime::currentDateTime().toString()+QString::number(QDateTime::currentMSecsSinceEpoch())+".png";
+        }
+
         image.save(path);
     }
     ui->picBtn->setChecked(true);
@@ -247,3 +274,4 @@ void MainWindow::ProcessVideoFrame(QVideoFrame frame)
 {
     qDebug()<<111111;
 }
+

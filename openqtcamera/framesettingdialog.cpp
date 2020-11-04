@@ -47,6 +47,7 @@ FrameSettingDialog::FrameSettingDialog(QGraphicsVideoItem * videoItem,QMediaReco
             ui->FrameoutCodecCombox->setCurrentText("保持输出最大并扩展");
         }
     }
+    setWindowTitle("画面设置");
 }
 
 FrameSettingDialog::~FrameSettingDialog()
