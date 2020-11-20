@@ -17,8 +17,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    initSence();
     initCamera();
     initConnect();
+    initTimer();
     setWindowTitle("相机");
 }
 
@@ -28,34 +30,53 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::initCamera()
+void MainWindow::initSence()
 {
+    if(!m_graphicsVideoItem)
+    {
+        m_graphicsVideoItem = new QGraphicsVideoItem();
+        m_graphicsVideoItem->setPos(0,0);
+    }
+    if(!m_graphicsScene)
+    {
+        m_graphicsScene = new QGraphicsScene(this);
+        m_graphicsScene->addItem(m_graphicsVideoItem);
+        ui->graphicsView->setScene(m_graphicsScene);
+        m_graphicsScene->setBackgroundBrush(Qt::black);
+    }
 
-    m_graphicsVideoItem = new QGraphicsVideoItem();
-//    m_graphicsVideoItem->setSize(QSizeF(640,480));
-    m_graphicsVideoItem->setPos(0,0);
 
-    m_graphicsScene = new QGraphicsScene(this);
-    m_graphicsScene->addItem(m_graphicsVideoItem);
+}
+//设置采集目标
 
-    ui->graphicsView->setScene(m_graphicsScene);
-
-    m_graphicsScene->setBackgroundBrush(Qt::black);
-    m_pCamera =new QCamera(QCameraInfo::defaultCamera());
-
-    m_pCameraImageCapture=new QCameraImageCapture(m_pCamera);
-    //设置采集目标
-
-    //        m_pCamera->setCaptureDestination(QCameraImageCapture::CaptureToFile);
+//        m_pCamera->setCaptureDestination(QCameraImageCapture::CaptureToFile);
 //    m_pCameraImageCapture->setBufferFormat(QVideoFrame::Format_ARGB32_Premultiplied);
-    //设置采集模式
+//设置采集模式
 //    m_pCamera->setCaptureMode(QCamera::CaptureViewfinder);//将其采集为图片
 //    m_pCamera->setCaptureMode(QCamera::CaptureMode::CaptureStillImage);//将其采集到取景器中
+void MainWindow::initCamera(QCameraInfo cameraInfo)
+{
+    if(m_mediaRecorder)
+    {
+        m_mediaRecorder->deleteLater();
+        m_mediaRecorder=nullptr;
+    }
+    if(m_pCameraImageCapture)
+    {
+        m_pCameraImageCapture->deleteLater();
+        m_pCameraImageCapture=nullptr;
+    }
+    if(m_pCamera)
+    {
+        m_pCamera->deleteLater();
+        m_pCamera=nullptr;
+    }
+
+    m_pCamera =new QCamera(cameraInfo);
+    m_pCameraImageCapture=new QCameraImageCapture(m_pCamera);
+
     //设置取景器
     m_pCamera->setViewfinder(m_graphicsVideoItem);
-
-
-//    m_pCamera->setCaptureMode(QCamera::CaptureStillImage);
     m_pCamera->setCaptureMode(QCamera::CaptureVideo);
 
     //dosomething about the resolution
@@ -65,6 +86,22 @@ void MainWindow::initCamera()
     QCameraViewfinderSettings *m_finderSetting=new QCameraViewfinderSettings();
         m_finderSetting->setPixelAspectRatio(900,200);
     m_pCamera->setViewfinderSettings(*m_finderSetting);
+    QVideoEncoderSettings videosetting = m_mediaRecorder->videoSettings();
+    videosetting.setResolution(QSize(640,480));
+
+    m_widthTheight=float(640)/float(480);
+    m_mediaRecorder->setVideoSettings (videosetting);
+
+    m_graphicsVideoItem->setAspectRatioMode(Qt::IgnoreAspectRatio);
+    //开启相机
+    m_pCamera->start();
+
+    ui->statusBar->hide();
+
+    auto* probe = new QVideoProbe(m_pCamera);
+
+    m_currentInfo=cameraInfo;
+    m_InfoList=QCameraInfo::availableCameras();
 
     connect(m_mediaRecorder, &QMediaRecorder::durationChanged, this, [=](qint64 index){
         QString str = QString("Recorded %1 sec").arg(m_mediaRecorder->duration()/1000);
@@ -78,32 +115,38 @@ void MainWindow::initCamera()
            qDebug()<<"1111";
 
        });
-    QVideoEncoderSettings videosetting = m_mediaRecorder->videoSettings();
-    videosetting.setResolution(QSize(640,480));
 
-    m_widthTheight=float(640)/float(480);
-    m_mediaRecorder->setVideoSettings (videosetting);
-
-    m_graphicsVideoItem->setAspectRatioMode(Qt::IgnoreAspectRatio);
-    //开启相机
-    m_pCamera->start();
-
-//    for (QSize resolution : m_pCamera->supportedViewfinderResolutions()){
-//        qDebug()<<resolution;
-//    }
-//    for (QCameraInfo info :QCameraInfo::availableCameras()) {
-//        qDebug()<<info.deviceName();
-//        qDebug()<<info.description();
-//        qDebug()<<info.orientation();
-//    }
-
-    ui->statusBar->hide();
-
-    auto* probe = new QVideoProbe(m_pCamera);
 
     //一旦有探测到有视频，就触发了ProcessVideoFrame函数
     connect(probe, SIGNAL(videoFrameProbed(QVideoFrame)), this, SLOT(ProcessVideoFrame(QVideoFrame)));
 
+//    void stateChanged(QCamera::State state);
+//    void captureModeChanged(QCamera::CaptureModes);
+//    void statusChanged(QCamera::Status status);\
+    QCamera::CaptureModes;
+    connect(m_pCamera, &QCamera::stateChanged, this, [=](QCamera::State state){
+        qDebug()<<state;
+    });
+    connect(m_pCamera, &QCamera::captureModeChanged, this, [=](QCamera::CaptureModes state){
+        qDebug()<<state;
+    });
+    connect(m_pCamera, &QCamera::statusChanged, this, [=](QCamera::Status status){
+        qDebug()<<status;
+    });
+
+
+
+
+}
+
+void MainWindow::initTimer()
+{
+    if(!m_timer)
+    {
+        m_timer=new QTimer(this);
+        connect(m_timer,&QTimer::timeout,this,&MainWindow::checkDeviceListInfo);
+        m_timer->start(1000);
+    }
 }
 void MainWindow::resizeMovieWindow()
 {
@@ -273,5 +316,20 @@ void MainWindow::on_morePicBtn_clicked()
 void MainWindow::ProcessVideoFrame(QVideoFrame frame)
 {
     qDebug()<<111111;
+}
+
+void MainWindow::checkDeviceListInfo()
+{
+QList<QCameraInfo> curCameraInfoList = QCameraInfo::availableCameras();
+ if(m_InfoList.count()!=curCameraInfoList.count())
+ {
+     qDebug()<<m_InfoList.count();
+     qDebug()<<curCameraInfoList.count();
+ }
+//    for (QCameraInfo info :QCameraInfo::availableCameras()) {
+//        qDebug()<<info.deviceName();
+//        qDebug()<<info.description();
+//        qDebug()<<info.orientation();
+//    }
 }
 

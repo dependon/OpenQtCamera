@@ -14,6 +14,8 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
+#include <QTimer>
+
 namespace Ui {
 class MainWindow;
 }
@@ -26,10 +28,12 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    void initCamera();
-
+    void initSence();
+    void initCamera(QCameraInfo = QCameraInfo::defaultCamera());
+    void initTimer();
     void initConnect();
     void resizeMovieWindow();
+
 
     bool isFile(const QString & path);
 
@@ -50,6 +54,8 @@ private slots:
 
     void ProcessVideoFrame(QVideoFrame frame);
 
+    void checkDeviceListInfo();
+
 
 private:
     Ui::MainWindow *ui;
@@ -65,6 +71,11 @@ private:
 
     QString m_picSavePath=nullptr;
     QString m_movSavePath=nullptr;
+
+    QTimer *m_timer{nullptr};
+
+    QCameraInfo m_currentInfo{nullptr};
+    QList<QCameraInfo >m_InfoList;
 };
 
 #endif // MAINWINDOW_H
